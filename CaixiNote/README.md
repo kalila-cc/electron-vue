@@ -6,7 +6,7 @@
 1.0.0
 
 ### install
-+ [点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/electron-vue/master/CaixiNote/build/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
+[点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/electron-vue/master/CaixiNote/build/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
 
 ### feature
 + 添加任务，编辑任务，标为完成，删除任务
