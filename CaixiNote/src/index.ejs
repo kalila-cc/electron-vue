@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="static/css/frame.css">
+    <title id="title"> {{ appName }} </title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- 顶部栏 -->
+      <div v-if="!pageHidden"
+        class="bar theme-color"
+        ref="bar"
+        :style="{
+          '-webkit-app-region': pageFixed ? 'none' : 'drag',
+        }">
+        <!-- 图标 -->
+        <div class="container">
+          <image :src="'static/' + iconPath" style="width: 14px; height: 14px;"></image>
+        </div>
+        <!-- 名称 -->
+        <div class="app-name white-color row-container" style="font-size: 11px;">
+          <span> {{ appName }} </span>
+        </div>
+        <!-- 置顶 -->
+        <div
+          class="container pin-screen"
+          :title="pagePin ? '取消置顶' : '置顶'">
+          <i class="el-icon-paperclip clickable white-color" @click="handlePinWindow"></i>
+        </div>
+        <!-- 固定 -->
+        <div v-if="settings.mode === 'list'"
+          class="container fix-screen"
+          :title="pageFixed ? '取消固定' : '固定'">
+          <i
+            class="clickable white-color"
+            :class="pageFixed ? 'el-icon-bottom' : 'el-icon-top'"
+            @click="handleFixWindow"">
+          </i>
+        </div>
+        <!-- 最小化 -->
+        <div
+          title="最小化"
+          class="container min-screen">
+          <i class="el-icon-minus clickable white-color" @click="handleMinWindow""></i>
+        </div>
+        <!-- 关闭 -->
+        <div
+          :title="settings.hide ? '隐藏' : '关闭'"
+          class="container close-screen">
+          <i class="el-icon-close clickable white-color" @click="handleCloseWindow""></i>
+        </div>
+      </div>
+      <!-- 内容栏 / 底部栏 -->
+      <div class="main">
+        <!-- 内容 -->
+        <el-container v-if="!pageHidden"
+          class="main-content"
+          direction="vertical"
+          style="margin: 30px 0;">
+          <!-- 导航 (表格模式) -->
+          <el-tabs v-if="settings.mode === 'table'"
+            class="nav-bar"
+            type="card"
+            mode="horizontal"
+            :stretch="true"
+            v-model="activeCategory"
+            style="position: fixed; top: 30px; background-color: #ffffff; z-index: 2000;"
+            :before-leave="handleToggleTab">
+            <el-tab-pane
+              v-for="(item, index) in tags"
+              :key="index"
+              :name="item.label">
+              <span slot="label" style="cursor: pointer;">
+                <i :class="item.icon" style="margin-right: 4px; font-size: 15px;"></i>
+                {{ item.label }}
+              </span>
+            </el-tab-pane>
+          </el-tabs>
+          <!-- 卡片 (表格模式) -->
+          <div v-if="settings.mode === 'table'"
+            style="margin-top: 60px;">
+            <el-card
+              v-for="(leafTodoList, index) in treeTodoList"
+              style="margin: 0 20px 30px;">
+              <!-- 卡片 header -->
+              <div slot="header" style="line-height: 10px;">
+                <!-- 时间文字 -->
+                <span style="font-size: 14px;"> {{ leafTodoList.label }} ({{ leafTodoList.todoList.length }}) </span>
+                <!-- 展开按钮 -->
+                <span
+                  class="clickable"
+                  style="float: right; padding: 3px 0; font-size: 12px; color: darkgrey; cursor: pointer;"
+                  @click="handleLabelExpand(leafTodoList.label)">
+                  <i :class="expanded[activeCategory][leafTodoList.label] ? 'el-icon-caret-top' : 'el-icon-caret-bottom'" style="margin-right: 5px;"></i>
+                  <span style="cursor: pointer;"> {{ expanded[activeCategory][leafTodoList.label] ? '折叠' : '展开' }} </span>
+                </span>
+              </div>
+              <!-- 卡片内容 (表格) -->
+              <el-table v-if="expanded[activeCategory][leafTodoList.label]"
+                empty-text="这里没有任务噢"
+                :data="leafTodoList.todoList"
+                :row-class-name="getOverdueClassName"
+                style="width: 100%; line-height: 1px;">
+                <!-- 时间 -->
+                <el-table-column label="时间" min-width="180" style="line-height: 5px;">
+                  <template slot-scope="scope">
+                    <i class="el-icon-time" style="margin-right: 4px;"></i>
+                    <span> {{ scope.row.deadline }} </span>
+                  </template>
+                </el-table-column>
+                <!-- 标题 -->
+                <el-table-column label="标题" min-width="150">
+                  <template slot-scope="scope">
+                    <div class="row-container">
+                      <el-tooltip class="item" effect="dark" :content="'优先级：' + scope.row.emegencyLevel" placement="bottom">
+                        <i
+                          class="el-icon-warning"
+                          style="margin-right: 6px;"
+                          :style=" { 'color': emegencyLevel[scope.row.emegencyLevel] } ">
+                        </i>
+                      </el-tooltip>
+                      <el-popover trigger="hover" placement="bottom">
+                        <p style="font-size: 13px; font-weight: bold;"> {{ scope.row.title }} </p>
+                        <p style="font-size: 13px; max-width: 300px; margin-top: 5px;"> {{ scope.row.note }} </p>
+                        <div slot="reference" class="row-title" :style="{'text-decoration': scope.row.finished ? 'line-through' : 'none'}"> {{ scope.row.title }} </div>
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
+                <!-- 标签 -->
+                <el-table-column label="标签" min-width="80">
+                  <template slot-scope="scope">
+                    <div slot="reference" class="tag-wrapper">
+                      <el-tag
+                        class="row-title"
+                        size="medium"
+                        style="font-weight: bold; border: 0; margin-top: 6px; max-width: 100px;"
+                        :color="handleTagColor(scope.row.category, scope.row.tag, 'get')"
+                        :style=" { 'color': handleTagColor(scope.row.category, scope.row.tag, 'get-font') } ">
+                        {{ scope.row.tag }}
+                      </el-tag>
+                    </div>
+                  </template>
+                </el-table-column>
+                <!-- 操作 -->
+                <el-table-column label="操作" min-width="150" class="operation">
+                  <template slot-scope="scope">
+                    <el-row style="font-size: 18px;">
+                      <!-- 编辑 -->
+                      <i
+                        title="编辑"
+                        class="el-icon-edit-outline clickable"
+                        style="margin-right: 12px;"
+                        @click="handleClickEdit(scope.row.id)">
+                      </i>
+                      <!-- 复制 -->
+                      <i
+                        title="复制"
+                        class="el-icon-copy-document clickable"
+                        style="margin-right: 12px;"
+                        @click="handleClickCopy(scope.row.id)">
+                      </i>
+                      <!-- 完成 -->
+                      <i
+                        :title="scope.row.finished ? '标为未完成' : '标为完成'"
+                        class="clickable theme-font-color"
+                        :class="scope.row.finished ? 'el-icon-success' : 'el-icon-finished'"
+                        style="margin-right: 12px;"
+                        @click="handleClickMark(scope.row.id)">
+                      </i>
+                      <!-- 删除 -->
+                      <el-popconfirm
+                        icon="el-icon-info"
+                        icon-color="red"
+                        title="确定删除吗，操作不可撤销"
+                        @confirm="handleClickDelete(scope.row.id)"
+                        style="font-size: 20px;">
+                        <i
+                          title="删除"
+                          slot="reference"
+                          class="el-icon-delete clickable danger-font-color"
+                          style="margin-right: 12px;">
+                        </i>
+                      </el-popconfirm>
+                    </el-row>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <!-- 卡片内容 (折叠) -->
+              <span class="container" style="font-size: 12px; line-height: 5px;" v-else>
+                <div> 内容已折叠 </div>
+              </span>
+            </el-card>
+          </div>
+          <!-- 导航 (列表模式) -->
+          <div v-show="!takingScreenShot" class="row-container dropdown">
+            <el-dropdown v-if="settings.mode === 'list'"
+              style="max-width: 100px; padding: 6px 0;"
+              @command="handleToggleActiveCategory">
+              <span
+                class="theme-font-color"
+                style="max-width: 100px; margin: 0 10px;">
+                <i :class="tags[getCategoryIndex(activeCategory)].icon"></i>
+                <span> {{ tags[getCategoryIndex(activeCategory)].label }} </span>
+                <i class="el-icon-arrow-down"></i>
+              </span>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item
+                  v-for="item in tags"
+                  :command="item.label"> {{ item.label }} </el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+          </div>
+          <!-- 时间线 (列表模式) -->
+          <el-timeline v-if="settings.mode === 'list'"
+            style="margin-top: 30px; padding-left: 12px;">
+            <el-timeline-item
+              v-for="(leafTodoList, leafIndex) in treeTodoList"
+              :key="leafIndex"
+              icon="el-icon-time"
+              size="large"
+              placement="top"
+              :color="leafTodoList.color"
+              :timestamp="leafTodoList.label + ' (' + leafTodoList.todoList.length + ')' "
+              style="font-size: 14px; padding-bottom: 10px;">
+              <!-- 时间线项 -->
+              <div style="position: relative;">
+                <!-- 展开按钮 -->
+                <span
+                  class="expand-timeline"
+                  style="cursor: pointer; font-size: 11px;"
+                  @click="handleLabelExpand(leafTodoList.label)">
+                  <transition name="el-fade-in">
+                    <span style="cursor: pointer;"> {{ expanded[activeCategory][leafTodoList.label] ? '收起' : '展开' }} </span>
+                  </transition>
+                  <i
+                    class="el-icon-arrow-down clickable"
+                    style="margin-left: 2px;"
+                    :style="{
+                      transform: 'rotate(' + (expanded[activeCategory][leafTodoList.label] ? 180 : 0) + 'deg)',
+                      transition: 'transform .3s linear',
+                    }">
+                  </i>
+                </span>
+                <!-- 卡片列表 -->
+                <el-collapse-transition>
+                  <div v-show="expanded[activeCategory][leafTodoList.label]">
+                    <el-card
+                      v-for="(activity, activityIndex) in leafTodoList.todoList"
+                      :key="activityIndex"
+                      :class="getOverdueClassName({row: activity})"
+                      body-style="padding: 10px 10px 5px; font-size: 12px;"
+                      style="width: 280px; margin-bottom: 10px;">
+                      <!-- 标题栏 -->
+                      <div class="row-container justify-left" style="margin-bottom: 10px;">
+                        <!-- 优先级图标 -->
+                        <el-tooltip class="item" effect="dark" :content="'优先级：' + activity.emegencyLevel" placement="bottom">
+                          <i
+                            class="el-icon-warning"
+                            style="margin-right: 6px;"
+                            :style="{'color': emegencyLevel[activity.emegencyLevel]}">
+                          </i>
+                        </el-tooltip>
+                        <!-- 事件标题 -->
+                        <div
+                          :style="{ 'text-decoration': activity.finished ? 'line-through' : 'none' }">
+                          {{ activity.title }}
+                        </div>
+                        <!-- 展开折叠 -->
+                        <i
+                          class="el-icon-arrow-down clickable"
+                          style="position: absolute; right: 30px;"
+                          :style="{
+                            transform: 'rotate(' + (activity.expanded ? 180 : 0) + 'deg)',
+                            transition: 'transform .3s linear',
+                          }"
+                          @click="handleActivityExpand(activity.id)">
+                        </i>
+                      </div>
+                      <!-- 内容栏 -->
+                      <div>
+                        <!-- 备注 -->
+                        <div
+                          :title="activity.expanded ? '' : activity.note"
+                          :class="{'row-title': !activity.expanded }"
+                          style="font-size: 11px; font-weight: lighter; width: 100%; transition: all .5s ease;">
+                          <span> {{ activity.note }} </span>
+                        </div>
+                        <!-- 时间 分类 > 标签 -->
+                        <span class="row-container" style="font-size: 10px; margin-top: 6px; opacity: 0.5;">
+                          <!-- 时间 -->
+                          <i class="el-icon-time" style="margin-right: 4px;"></i>
+                          <span> {{ datetimeFormat(activity.deadline, true) }} </span>
+                          <!-- 分类 > 标签 -->
+                          <span style="position: absolute; right: 30px; font-size: 9px;">
+                            <span> {{ activity.category }} </span>
+                            <i class="el-icon-arrow-right"></i>
+                            <span> {{ activity.tag }} </span>
+                          </span>
+                        </span>
+                        <!-- 操作 -->
+                        <div v-show="activity.expanded && !takingScreenShot"
+                          class="row-container justify-right"
+                          style="font-size: 14px; margin-top: 5px;">
+                          <!-- 编辑 -->
+                          <i
+                            title="编辑"
+                            class="el-icon-edit-outline clickable"
+                            style="margin-right: 12px;"
+                            @click="handleClickEdit(activity.id)">
+                          </i>
+                          <!-- 复制 -->
+                          <i
+                            title="复制"
+                            class="el-icon-copy-document clickable"
+                            style="margin-right: 12px;"
+                            @click="handleClickCopy(activity.id)">
+                          </i>
+                          <!-- 完成 -->
+                          <i
+                            :title="activity.finished ? '标为未完成' : '标为完成'"
+                            class="clickable theme-font-color"
+                            :class="activity.finished ? 'el-icon-success' : 'el-icon-finished'"
+                            style="margin-right: 12px;"
+                            @click="handleClickMark(activity.id)">
+                          </i>
+                          <!-- 删除 -->
+                          <el-popconfirm
+                            icon="el-icon-info"
+                            icon-color="red"
+                            title="确定删除吗，操作不可撤销"
+                            @confirm="handleClickDelete(activity.id)">
+                            <i slot="reference" title="删除" class="el-icon-delete clickable danger-font-color"></i>
+                          </el-popconfirm>
+                        </div>
+                      </div>
+                    </el-card>
+                  </div>
+                </el-collapse-transition>
+              </div>
+            </el-timeline-item>
+          </el-timeline>
+          <!-- 悬浮按钮 (添加) -->
+          <i v-show="!takingScreenShot"
+            title="添加"
+            class="el-icon-circle-plus clickable add-button theme-font-color"
+            style="font-size: 40px; position: fixed; bottom: 50px; right: 10px; z-index: 2000;"
+            @click="handleClickAdd">
+          </i>
+          <!-- 抽屉 (编辑) -->
+          <el-drawer v-if="editVisible"
+            direction="rtl"
+            :size="listWidth + 'px'"
+            :title="rawEditItem.category ? '编辑' : '添加'"
+            :visible.sync="editVisible"
+            :before-close="handleEditDrawerClose">
+            <!-- 表单 -->
+            <form class="edit-item-form">
+              <!-- 分类 -->
+              <el-select
+                v-if="!rawEditItem.id"
+                v-model="rawEditItem.category"
+                placeholder="请选择分类"
+                style="margin-bottom: 20px; width: 300px;"
+                @change="handleEditCategoryChange">
+                <div slot="prefix" class="container" style="height: inherit; font-size: 14px; margin-left: 5px;">
+                  <i class="el-icon-folder-opened"></i>
+                </div>
+                <el-option
+                  v-for="(item, index) in tags"
+                  :value="item.label"
+                  :label="index > 0 ? item.label : '请选择分类'"
+                  :disabled="index === 0">
+                </el-option>
+              </el-select>
+              <!-- 日期时间选择器 -->
+              <el-date-picker
+                v-model="rawEditItem.deadline"
+                type="datetime"
+                placeholder="请选择日期时间"
+                style="margin-bottom: 20px; width: 300px;">
+              </el-date-picker>
+              <!-- 优先级 -->
+              <el-select
+                v-model="rawEditItem.emegencyLevel"
+                placeholder="请选择优先级"
+                style="margin-bottom: 20px; width: 300px;">
+                <div slot="prefix" class="container" style="height: inherit; font-size: 14px; margin-left: 5px;">
+                  <i class="el-icon-warning-outline"></i>
+                </div>
+                <el-option
+                  v-for="(item, index) in emegencyLevel.length"
+                  :key="item"
+                  :value="index"
+                  :label="item > 1 ? (item - 1) : '请选择优先级'"
+                  :disabled="item <= 1">
+                </el-option>
+              </el-select>
+              <!-- 标签 -->
+              <el-select
+                v-model="rawEditItem.tag"
+                filterable
+                allow-create
+                placeholder="请选择或输入新的标签"
+                style="margin-bottom: 20px; width: 300px;"
+                @change="handleEditTagChange">
+                <div slot="prefix" class="container" style="height: inherit; font-size: 14px; margin-left: 5px;">
+                  <i class="el-icon-collection-tag"></i>
+                </div>
+                <el-option
+                  v-for="(item, index) in getCategoryTags(rawEditItem.category)"
+                  :label="item.label"
+                  :value="item.label">
+                  <span> {{ item.label }} </span>
+                </el-option>
+              </el-select>
+              <el-dialog
+                title="提示"
+                width="300px"
+                :modal="false"
+                :visible.sync="editTagDialogVisible"
+                center>
+                <span class="container">
+                  <span style="font-size: 14px;"> 是否将新标签保存为备选项 </span>
+                  <span style="font-size: 11px; margin-top: 10px;"> (注意：临时性标签不需要保存) </span>
+                </span>
+                <span slot="footer" class="dialog-footer">
+                  <el-button @click="editTagDialogVisible = false"> 跳 过 </el-button>
+                  <el-button type="primary" @click="handleEditTagSave(rawEditItem.category, rawEditItem.tag)" > 保 存 </el-button>
+                </span>
+              </el-dialog>
+              <!-- 标题 -->
+              <el-input
+                v-model="rawEditItem.title"
+                type="text"
+                placeholder="请输入标题"
+                maxlength="16"
+                prefix-icon="el-icon-guide"
+                style="margin-bottom: 20px; width: 300px;"
+                show-word-limit>
+              </el-input>
+              <!-- 备注 -->
+              <el-input
+                v-model="rawEditItem.note"
+                type="textarea"
+                :autosize="{minRows: 2, maxRows: 8}"
+                :clearable="true"
+                placeholder="请输入备注"
+                maxlength="128"
+                prefix-icon="el-icon-chat-dot-square"
+                style="margin-bottom: 20px; width: 300px;"
+                show-word-limit>
+              </el-input>
+              <!-- 按钮 -->
+              <div class="row-container">
+                <el-button type="primary" @click="handleEditSave"> 保存 </el-button>
+                <el-button type="primary" @click.prevent.stop="handleDeleteExternalTag" :disabled="!rawEditItem.category"> 清除当前分类临时标签 </el-button>
+              </div>
+            </form>
+          </el-drawer>
+          <!-- 抽屉 (样式) -->
+          <el-drawer v-if="styleVisible"
+            direction="rtl"
+            :size="listWidth + 'px'"
+            title="样式"
+            :visible.sync="styleVisible"
+            :before-close="handleStyleDrawerClose">
+            <!-- 表单 -->
+            <form>
+              <!-- 主题 -->
+              <el-card v-if="false"
+                style="margin: 0 20px 20px; font-size: 14px;"
+                body-style="padding: 10px 20px;">
+                <span class="row-container">
+                  <div> 主题 </div>
+                  <el-color-picker v-model="rawStyle.theme" size="mini" style="margin-left: 15px;"></el-color-picker>
+                </span>
+                <span style="font-size: 10px;"> (重启后生效) </span>
+              </el-card>
+              <!-- 标签 -->
+              <el-card style="margin: 0 20px 20px; font-size: 14px;">
+                <div slot="header"> 标签 </div>
+                <!-- 标签选择 -->
+                <div class="row-container">
+                  <!-- 分类 -->
+                  <el-select
+                    v-model="rawStyle.selected.category"
+                    placeholder="请选择分类"
+                    style="width: 145px;"
+                    @change="handleCategoryChange">
+                    <div slot="prefix" class="container" style="height: inherit; font-size: 14px; margin-left: 5px;">
+                      <i class="el-icon-folder-opened"></i>
+                    </div>
+                    <el-option
+                      v-for="(item, index) in tags"
+                      :value="item.label"
+                      :label="item.label">
+                    </el-option>
+                  </el-select>
+                  <!-- 标签 -->
+                  <el-select
+                    v-model="rawStyle.selected.tag"
+                    filterable
+                    placeholder="请选择标签"
+                    style="margin-left: 15px; width: 145px;"
+                    @change="handleTagChange">
+                    <div slot="prefix" class="container" style="height: inherit; font-size: 14px; margin-left: 5px;">
+                      <i class="el-icon-collection-tag"></i>
+                    </div>
+                    <el-option
+                      v-for="(item, index) in getCategoryTags(rawStyle.selected.category)"
+                      :label="item.label"
+                      :value="item.label">
+                    </el-option>
+                  </el-select>
+                </div>
+                <!-- 颜色选择 -->
+                <div class="row-container" style="margin-top: 10px;">
+                  <!-- 背景颜色 -->
+                  <div class="row-container">
+                    <span> 背景颜色： </span>
+                    <el-color-picker
+                      v-model="rawStyle.selected.color"
+                      style="margin-left: 15px;"
+                      size="mini"
+                      @change="handleColorChange">
+                    </el-color-picker>
+                  </div>
+                  <!-- 文字颜色 -->
+                  <div class="row-container" style="margin-left: 20px;">
+                    <span> 文字颜色： </span>
+                    <el-color-picker
+                      v-model="rawStyle.selected.fontColor"
+                      style="margin-left: 15px;"
+                      size="mini"
+                      @change="handleFontColorChange">
+                    </el-color-picker>
+                  </div>
+                </div>
+                <!-- 效果预览 -->
+                <div class="row-container" style="margin-top: 15px;">
+                  <!-- 提示 -->
+                  <span> 预览： </span>
+                  <!-- 标签 -->
+                  <div
+                    class="container"
+                    style="width: 160px; height: 40px; border-radius: 5px; margin-left: 3px; font-weight: bold;"
+                    :style=" { 'background-color': rawStyle.selected.color } ">
+                    <span :style=" { 'color': rawStyle.selected.fontColor } "> {{ rawStyle.selected.tag }} </span>
+                  </div>
+                </div>
+              </el-card>
+              <!-- 按钮 -->
+              <el-button
+                type="primary"
+                style="margin-left: 20px;"
+                @click="handleStyleSave">
+                保存
+              </el-button>
+            </form>
+          </el-drawer>
+          <!-- 抽屉 (日历) -->
+          <el-drawer v-if="calendarVisible"
+            direction="rtl"
+            title="日历"
+            :size="listWidth + 'px'"
+            :visible.sync="calendarVisible"
+            :before-close="handleCalendarDrawerClose">
+            <!-- 日历 -->
+            <div class="calendar">
+              <!-- 标题栏 -->
+              <div class="row-container title">
+                <!-- 年月选择 -->
+                <el-date-picker
+                  v-model="calendar"
+                  type="month"
+                  placeholder="请选择年月"
+                  format="yyyy 年 M 月"
+                  style="width: 200px;">
+                </el-date-picker>
+                <!-- 月份跳跃 -->
+                <div class="row-container" style=" width: 120px; margin-left: 50px;">
+                  <i
+                    class="el-icon-arrow-left clickable"
+                    @click="handleSkipMonth(-1)"></i>
+                  <span class="container" style="min-width: 50px;">
+                    <div> {{ calendar.getMonth() + 1 }} 月 </div>
+                  </span>
+                  <i
+                    class="el-icon-arrow-right clickable"
+                    @click="handleSkipMonth(1)"></i>
+                </div>
+              </div>
+              <!-- 表格栏 -->
+              <div class="table">
+                <!-- 星期 -->
+                <div class="weekday-bar">
+                  <div
+                    class="weekday container"
+                    v-for="weekday in ['日', '一', '二', '三', '四', '五', '六']"
+                    style="background-color: #eee;">
+                    <div class="cell container"> {{ weekday }} </div>
+                  </div>
+                </div>
+                <!-- 日期 -->
+                <div
+                  v-for="day in calendarData"
+                  class="day container"
+                  :style="{
+                    'background-color': day.type === 'curr' ? (day.today ? '#ffffff' : '#fcfcfc') : '#dddddd',
+                    'opacity': day.type === 'curr' ? 1.0 : 0.3,
+                    'border': day.today ? '1px solid ' + settings.themeColor : '0',
+                  }">
+                  <!-- 当日有任务 -->
+                  <el-popover v-if="day.tasks.length > 0"
+                    width="180"
+                    trigger="hover">
+                    <!-- 原有内容 -->
+                    <div slot="reference" class="cell container" style="position: relative;">
+                      <div> {{ day.getDate() }} </div>
+                      <div class="float-point white-color"> {{ day.tasks.length }} </div>
+                    </div>
+                    <!-- 弹窗内容 -->
+                    <div
+                      v-for="task in day.tasks"
+                      class="date-content"
+                      style="font-size: 11px;">
+                      <i
+                        class="el-icon-warning"
+                        style="margin-right: 2px;"
+                        :style="{'color': emegencyLevel[task.emegencyLevel]}">
+                      </i>
+                      <span
+                        class="row-title"
+                        :style=" { 'text-decoration': task.finished ? 'line-through' : 'none' } "> {{ task.title }} </span>
+                      <span class="row-content" style="font-weight: lighter;"> {{ task.note }} </span>
+                    </div>
+                  </el-popover>
+                  <!-- 当日无任务 -->
+                  <div v-else
+                    class="cell container" style="position: relative;">
+                    <div> {{ day.getDate() }} </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-drawer>
+          <!-- 抽屉 (设置) -->
+          <el-drawer v-if="settingsVisible"
+            direction="rtl"
+            title="设置"
+            :size="listWidth + 'px'"
+            :visible.sync="settingsVisible"
+            :before-close="handleSettingsDrawerClose">
+            <!-- 表格 -->
+            <form>
+              <!-- 关闭窗口设置 -->
+              <el-card style="margin: 0 20px 20px;">
+                <div slot="header" style="line-height: 5px; font-size: 14px;">
+                  <span> 关闭窗口设置 </span>
+                </div>
+                <div style="line-height: 30px;">
+                  <el-radio
+                    v-model="rawSettings.hide"
+                    :label="true">
+                    <span style="cursor: pointer;"> 关闭窗口时最小化到托盘 </span>
+                  </el-radio>
+                  <el-radio
+                    v-model="rawSettings.hide"
+                    :label="false">
+                    <span style="cursor: pointer;"> 关闭窗口时直接退出程序 </span>
+                  </el-radio>
+                </div>
+              </el-card>
+              <!-- 显示模式设置 -->
+              <el-card style="margin: 0 20px 20px;">
+                <div slot="header" style="line-height: 5px; font-size: 14px;">
+                  <span> 显示模式设置 </span>
+                </div>
+                <div style="line-height: 30px;">
+                  <el-radio v-model="rawSettings.mode" label="list">
+                    <span style="cursor: pointer;"> 列表模式 </span>
+                  </el-radio>
+                  <el-radio v-model="rawSettings.mode" label="table">
+                    <span style="cursor: pointer;"> 表格模式 </span>
+                  </el-radio>
+                </div>
+              </el-card>
+              <!-- 开启自启设置 -->
+              <el-card style="margin: 0 20px 20px;">
+                <span
+                  style="font-size: 14px; margin-right: 10px;"
+                  :style="{ opacity : rawSettings.autoOpen ? 1.0 : 0.5 }"> 开机自启动 </span>
+                <el-switch
+                  v-model="rawSettings.autoOpen"
+                  :active-color="settings.themeColor">
+                </el-switch>
+              </el-card>
+              <!-- 保存按钮 -->
+              <el-button type="primary" @click="handleSettingsSave" style="margin-left: 20px; margin-bottom: 20px;"> 保存 </el-button>
+              <!-- 关于 -->
+              <el-card class="clickable" style="margin: 0 20px 20px;" body-style="padding: 0;">
+                <el-popover
+                  placement="top"
+                  width="275"
+                  trigger="click">
+                  <template slot="reference" style="width: 100%; line-height: 5px;">
+                    <div style="padding: 20px; font-size: 14px;">
+                      <i class="el-icon-info"></i>
+                      <span> 关于 </span>
+                    </div>
+                  </template>
+                  <div style="font-size: 13px; margin-right: 10px; text-indent: 2em;">
+                    <p v-for="msg in aboutMessages"> {{ msg }} </p>
+                    <p> 欢迎关注作者的 <a @click="handleClickGitHub" :href="github"> GitHub </a>，该页面可找到作者的联系方式，有问题欢迎反馈，如果觉得不错，欢迎打赏作者。</p>
+                  </div>
+                </el-popover>
+              </el-card>
+            </form>
+          </el-drawer>
+          <!-- 进度条 -->
+          <div v-show="!takingScreenShot" class="progress">
+            <el-progress :percentage="progressPercentage" :show-text="false" :color="progressColor"></el-progress>
+          </div>
+          <!-- 页脚 -->
+          <span v-show="!takingScreenShot"
+            class="footer row-container justify-right theme-color">
+            <!-- 测试 -->
+            <i v-if="debug"
+              title="测试"
+              class="el-icon-thumb clickable"
+              style="font-size: 14px;"
+              @click="handleClickTest">
+            </i>
+            <!-- 导出 -->
+            <i v-if="settings.mode === 'list'"
+              title="导出"
+              class="el-icon-camera clickable"
+              style="font-size: 14px;"
+              @click="handleClickCamera">
+            </i>
+            <!-- 样式 -->
+            <i
+              title="样式"
+              class="el-icon-brush clickable"
+              style="font-size: 14px;"
+              @click="handleClickStyle">
+            </i>
+            <!-- 日历 -->
+            <i
+              title="日历"
+              class="el-icon-date clickable"
+              style="font-size: 14px;"
+              @click="handleClickCalendar">
+            </i>
+            <!-- 设置 -->
+            <i
+              title="设置"
+              class="el-icon-s-operation clickable"
+              style="font-size: 14px;"
+              @click="handleClickSettings">
+            </i>
+          </span>
+        </el-container>
+        <!-- 隐藏 -->
+        <div v-else
+          class="hidden-bar theme-color"
+          style="width: 100%; height: 40px;"
+          @mouseenter="handleHiddenBarMouseEnter">
+        </div>
+      </div>
+      <!-- 冒泡提示 -->
+      <transition name="bubble-message" >
+        <div v-if="bubbleMessageVisible" class="bubble-message-container row-container">
+          <i class="el-icon-info" style="font-size: 16px;" :style=" { color: bubbleMessageIconColor } "></i>
+          <span class="bubble-message-content" style="margin-left: 12px;"> {{ bubbleMessage }} </span>
+        </div>
+      </transition>
+    </div>
+  </body>
+</html>

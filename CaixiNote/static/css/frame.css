@@ -1,0 +1,235 @@
+* {
+    font-family:'Microsoft YaHei'
+}
+::-webkit-scrollbar {
+    display: none; 
+}
+body {
+    margin: 0;
+    -webkit-app-region: no-drag;
+    cursor: default;
+}
+body, text, div, span, p {
+    user-select: none;
+}
+
+.danger-font-color {
+    color: #f56c6c;
+}
+
+.row-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.justify-left {
+    justify-content: flex-start;
+}
+.justify-center {
+    justify-content: center;
+}
+.justify-right {
+    justify-content: flex-end;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.white-color {
+    color: white;
+}
+.clickable {
+    cursor: pointer;
+}
+.bar {
+    position: fixed;
+    top: 0;
+    z-index: 2000;
+    width: 100%;
+    height: 30px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-end;
+    -webkit-app-region: drag;
+}
+.bar .container {
+    position: relative;
+    width: 30px;
+    font-size: 15px;
+    -webkit-app-region: no-drag;
+}
+.app-name {
+    margin-left: 3px;
+    margin-right: auto;
+}
+
+.main {
+    width: 100%;
+}
+.nav-bar {
+    width: 100%;
+}
+.nav-bar-selector {
+    background-color: red;
+}
+
+.expand-timeline {
+    position: absolute;
+    top: -22px;
+    right: 22px;
+    opacity: 0.5;
+}
+
+.dropdown {
+    width: 100%;
+    z-index: 2000;
+    position: fixed;
+    top: 30px;
+    background-color: #ffffff;
+}
+
+.row-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.row-content {
+    margin-top: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.date-content + .date-content {
+    margin-top: 10px;
+}
+
+.edit-item-form {
+    padding: 0 20px 20px;
+}
+.overdue {
+    opacity: 0.5;
+}
+.el-table .overdue {
+    opacity: 0.5;
+}
+.el-table thead th {
+    padding: 0;
+}
+
+
+.footer {
+    position: fixed;
+    height: 30px;
+    bottom: 0;
+    width: 100%;
+    z-index: 2000;
+}
+.footer .clickable {
+    font-size: 18px;
+    color: white;
+    margin-right: 15px;
+}
+.el-radio.is-bordered + .el-radio.is-bordered {
+    margin-left: 0px;
+}
+
+.calendar {
+    width: 300px;
+    margin: 0 20px;
+}
+.calendar .table {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    background-color: #fcfcfc;
+}
+.table .weekday-bar {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    background-color: #eeeeee;
+}
+.calendar .weekday, .calendar .day {
+    display: inline-block;
+}
+.calendar .cell {
+    width: 41.8px;
+    height: 60px;
+}
+.weekday .cell {
+    font-size: 12px;
+}
+.day .cell {
+    font-size: 12px;
+}
+.cell .float-point {
+    z-index: 1000;
+    position: absolute;
+    right: -4px;
+    top: -4px;
+    border-radius: 50%;
+    background-color: red;
+    padding: 0 4px;
+    font-size: 10px;
+}
+
+.progress {
+    position: fixed;
+    bottom: 30px;
+    width: 100%;
+    z-index: 2000;
+}
+
+.bubble-message-container {
+    z-index: 2001;
+    padding: 10px;
+    background-color: white;
+    color: black;
+    border: 1px solid #eeeeee;
+    font-size: 12px;
+    border-radius: 5px;
+    position: fixed;
+    top: 20px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 240px;
+}
+
+.bubble-message-enter-active {
+    animation: bubble-message .4s;
+}
+.bubble-message-leave-active {
+    animation: bubble-message .6s reverse;
+}
+
+@keyframes bubble-message {
+    0% {
+        opacity: 0;
+        scale: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        scale: 1;
+        transform: translateY(0px);
+    }
+}
+
+
+.collapse-enter-active, .collapse-leave-active {
+    transition: all 1s ease;
+    height: max-content !important;
+}
+.collapse-enter, .collapse-leave-to {
+    height: 0px !important;
+}
