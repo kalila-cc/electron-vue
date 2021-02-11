@@ -1,6 +1,6 @@
 # 采昔便签 (CaixiNote)
 
-> 一个简单而又不简单的便签。
+> 一个简单而又不简单的桌面便签。
 
 ### install
 [点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/Program/master/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
