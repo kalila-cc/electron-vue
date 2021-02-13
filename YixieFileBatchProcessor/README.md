@@ -1,6 +1,16 @@
-# YixieFileBatchProcessor
+# 易写文件批处理工具 (YixieFileBatchProcessor)
 
-> 支持批量处理文件及其属性。
+> 持批量处理文件及其属性。
+
+### install
+[点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/Program/master/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
+
+#### version 1.0.0
++ 支持通过正则匹配过滤文件，并进行批量复制、移动或删除
++ 支持通过正则匹配批量重命名文件
++ 支持通过正则匹配批量修改 mp3 信息 (如歌手、标题、专辑名称、曲目编号等)
++ 支持批量修改 mp3 专辑封面
++ 支持提取专辑封面
 
 #### Build Setup
 
