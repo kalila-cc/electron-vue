@@ -41,7 +41,7 @@ function init () {
       "name": "采昔便签",
       "author": "kalila-cc",
       "email": "3071927804@qq.com",
-      "github": "https://github.com/kalila-cc/HOME/blob/main/README.md",
+      "github": "https://github.com/kalila-cc/HOME",
       "icon": "icons/icon.ico",
       "debug": false,
       "settings": {
