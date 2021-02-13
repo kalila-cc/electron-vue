@@ -3,7 +3,7 @@
 > 支持批量处理文件及其属性。
 
 ### install
-[点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/Program/master/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
+[点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/Program/master/%E6%98%93%E5%86%99%E6%96%87%E4%BB%B6%E6%89%B9%E5%A4%84%E7%90%86%E5%B7%A5%E5%85%B7_Setup_1.0.0.exe)
 
 #### version 1.0.0
 + 支持通过正则匹配过滤文件，并进行批量复制、移动或删除
