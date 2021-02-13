@@ -1,6 +1,6 @@
 # 易写文件批处理工具 (YixieFileBatchProcessor)
 
-> 持批量处理文件及其属性。
+> 支持批量处理文件及其属性。
 
 ### install
 [点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/Program/master/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
