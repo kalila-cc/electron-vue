@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title id="title"> {{ config.appName }} </title>
+  </head>
+  <body style="margin: 0;">
+    <div id="app">
+      <el-row>
+        <!-- 模块选择 -->
+        <el-col :span="6">
+          <el-menu
+            default-active="0"
+            class="menu"
+            v-model="activeModuleLabel"
+            background-color="#545c64"
+            text-color="#ffffff"
+            active-text-color="#42a5f5"
+            @select="moduleChanged">
+            <el-menu-item :index="index.toString()" :label="module.label" v-for="(module, index) in modules">
+              <i class="clickable" :class="module.icon" style="margin-right: 5px; font-size: 16px;"></i>
+              <span slot="title" class="font-bold"> {{ module.label }} </span>
+            </el-menu-item>
+          </el-menu>
+        </el-col>
+        <!-- 文件处理 -->
+        <el-col :span="18">
+          <!-- 选择文件夹 -->
+          <div v-if="activeModuleIndex < 2" class="row-container" style="margin: 10px;">
+            <el-button type="primary" size="mini" icon="el-icon-search" @click="selectDirectory"> 选择 </el-button>
+            <div class="dirname line"> {{ selectedDirectory || '请选择一个文件夹' }} </div>
+          </div>
+          <!-- 选择过滤条件 -->
+          <div v-if="activeModuleIndex < 2" class="row-container" style="margin: 10px;">
+            <el-button :type="useFilter ? 'primary' : ''" size="mini" :disabled="!selectedDirectory" @click="clickUseFilter"> 使用过滤 </el-button>
+            <el-button :type="caseSensitive ? 'primary' : ''" size="mini" :disabled="!useFilter" @click="clickCaseSensitive"> 区分大小写 </el-button>
+            <el-button :type="useRegExp ? 'primary' : ''" size="mini" :disabled="!useFilter" @click="clickUseRegExp"> 使用正则 </el-button>
+            <el-button type="primary" size="mini" @click="handleFilter" :disabled="!useFilter || !filterExp.length" style="margin-left: 10px;"> 过滤 </el-button>
+            <el-input v-model="filterExp" size="mini" class="RegExp" :disabled="!useFilter" :placeholder="useRegExp ? '请输入正则表达式' : '请输入过滤条件'"></el-input>
+          </div>
+          <!-- 文件列表 -->
+          <el-table v-if="activeModuleIndex < 2"
+            :data="fileObjects"
+            size="mini"
+            tooltip-effect="dark"
+            max-height="400"
+            style="width: 95%; margin-left: 10px;"
+            show-overflow-tooltip="false"
+            empty-text="暂无文件"
+            @selection-change="selectedFilesChanged">
+            <el-table-column type="selection">
+            </el-table-column>
+            <el-table-column prop="file">
+              <template slot-scope="scope">
+                <i :class="scope.row.isDirectory ? 'el-icon-folder' : 'el-icon-document'"></i>
+                <span style="margin-left: 10px"> {{ scope.row.file }} </span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 文件操作 (刷新/复制/移动/删除/修改专辑封面) -->
+          <div v-if="activeModuleIndex < 2" class="row-container" style="margin: 10px;">
+            <el-button type="primary" size="mini" :disabled="!selectedDirectory" icon="el-icon-refresh" @click="reloadFiles"> 刷新 </el-button>
+            <el-button v-if="activeModuleIndex === 0" type="primary" size="mini" :disabled="!selectedFiles.length" icon="el-icon-document-copy" @click="copyFiles"> 复制 </el-button>
+            <el-button v-if="activeModuleIndex === 0" type="primary" size="mini" :disabled="!selectedFiles.length" icon="el-icon-rank" @click="moveFiles"> 移动 </el-button>
+            <el-button v-if="activeModuleIndex === 0" type="danger" size="mini" :disabled="!selectedFiles.length" icon="el-icon-delete" @click="removeFiles"> 删除 </el-button>
+            <el-button v-if="activeModuleIndex === 1" type="primary" size="mini" :disabled="!selectedFiles.length" @click="modifyAlbumCover"> 修改专辑封面 </el-button>
+            <el-button v-if="activeModuleIndex === 1" type="primary" size="mini" :disabled="selectedFiles.length !== 1" @click="saveAlbumCover"> 提取专辑封面 </el-button>
+          </div>
+          <!-- 原表达式/替换表达式/预览/重命名 -->
+          <div v-if="activeModuleIndex === 0"
+            class="row-container j-left"
+            style="width: 100%; margin-left: 10px;">
+            <el-input size="mini" v-model="renameObject.oldExp" placeholder="请输入需要替换的正则表达式" :disabled="!selectedFiles.length" style="width: 207px;" @input="clearRenameObject"></el-input>
+            <el-input size="mini" v-model="renameObject.newExp" placeholder="请输入用于替换的表达式" :disabled="!selectedFiles.length" style="width: 207px;" @input="clearRenameObject"></el-input>
+            <el-button type="primary" size="mini" :disabled="!canRename" @click="renameFilesPreview"> 预览 </el-button>
+            <el-button type="primary" size="mini" :disabled="!canRename" @click="renameFiles"> 重命名 </el-button>
+          </div>
+          <!-- 重命名预览 -->
+          <el-dialog title="预览" :visible.sync="renameFileObjectsVisible" width="85%">
+            <el-table :data="renameFileObjects" size="mini" max-height="300">
+              <el-table-column property="oldFile" label="原文件名" width="300" :show-overflow-tooltip="true"></el-table-column>
+              <el-table-column property="newFile" label="新文件名" width="300" :show-overflow-tooltip="true"></el-table-column>
+            </el-table>
+          </el-dialog>
+          <!-- 重命名报告 -->
+          <el-dialog title="错误" :visible.sync="errorVisible">
+            <el-table :data="errorData" size="mini" max-height="300">
+              <el-table-column property="file" label="处理失败" width="300" :show-overflow-tooltip="true"></el-table-column>
+            </el-table>
+          </el-dialog>
+          <!-- 修改歌曲基本信息 -->
+          <div v-if="activeModuleIndex === 1"
+            class="row-container j-left"
+            style="width: 100%; margin-left: 10px; margin-top: 10px;">
+            <el-input size="mini" v-model="songInfoExp" placeholder="请输入用于提取歌曲信息的格式字符串" :disabled="!selectedFiles.length" style="width: 240px;"></el-input>
+            <el-input size="mini" v-model="singerSepExp" placeholder="请输入歌手与歌手之间的分隔符" :disabled="!selectedFiles.length" style="width: 200px;"></el-input>
+            <el-button type="primary" size="mini" :disabled="!canModify" @click="modifyFiles" style="width: 108px;"> 修改歌手标题 </el-button>
+          </div>
+          <!-- 修改歌曲高级信息 -->
+          <div v-if="activeModuleIndex === 1"
+            class="row-container j-left"
+            style="width: 100%; margin-left: 10px; margin-top: 10px;">
+            <el-input size="mini" v-model="album" placeholder="请输入专辑名称" :disabled="!selectedFiles.length" style="width: 218px;"></el-input>
+            <el-button type="primary" size="mini" :disabled="!album" style="width: 100px;" @click="modifyAlbum"> 修改专辑名称 </el-button>
+            <el-input size="mini" v-model="trackNumber" placeholder="请输入曲目编号" :disabled="!selectedFiles.length" style="width: 120px;" @input="trackNumberChanged"></el-input>
+            <el-button type="primary" size="mini" :disabled="!trackNumber" style="width: 100px;" @click="modifyTrackNumber"> 修改曲目编号 </el-button>
+          </div>
+          <!-- 使用说明 -->
+          <div v-if="activeModuleIndex === 2"
+            style="margin: 0 10px; font-size: 14px; line-height: 0.9;">
+            <h4> 使用须知 </h4>
+            <p style="font-weight: bold; color: red;"> 在使用之前请务必对文件做好备份，防止误操作导致文件被修改或删除，从而无法回溯。 </p>
+            <h4> 高级重命名 </h4>
+            <p> 例：<code> Taylor Swift、HAIM - no body, no crime (feat. Haim).mp3 </code> </p>
+            <p> 需要替换的正则表达式：<code> (.+?)、(.+?) - (.+?)\.mp3 </code> </p>
+            <p> 用于替换的表达式：<code> $3 - $1 & $2 </code> </p>
+            <p> 替换结果：<code> no body, no crime (feat. Haim) - Taylor Swift & HAIM </code> </p>
+            <p style="font-weight: lighter; opacity: 0.5; font-size: 11px;"> 说明：涉及正则的功能需要用户本身对正则有一定的了解。 </p>
+            <br/>
+            <h4> 提取歌曲信息 </h4>
+            <p> 例：<code> Taylor Swift、HAIM - no body, no crime (feat. Haim).mp3 </code> </p>
+            <p> 用于提取歌曲信息的格式字符串：<code> $a - $t.mp3 </code> </p>
+            <p> 歌手与歌手之间的分隔符：<code> 、 </code> </p>
+            <p> 提取歌手结果：<code>  ['Taylor Swift', 'HAIM'] </code> </p>
+            <p> 提取标题结果：<code> no body, no crime (feat. Haim) </code> </p>
+            <p style="font-weight: lighter; opacity: 0.5; font-size: 11px;"> 说明：该功能通过 mp3 文件名对文件内容进行修改，在格式字符串中，<code> $a </code> 代表歌手 (artist)，<code> $t </code> 代表标题 (title)。 </p>
+            <br/>
+            <h4> 关于作者 </h4>
+            <p style="line-height: 1.5;"> 欢迎关注作者的 <a @click="openGitHub" :href="config.github"> GitHub </a>，该页面可找到作者的联系方式，有问题欢迎反馈，如果觉得不错，欢迎打赏作者。</p>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
+  </body>
+</html>

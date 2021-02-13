@@ -1,0 +1,10 @@
+{
+    "appName": "易写文件批处理工具",
+    "iconPath": "icons/icon.ico",
+    "size": {
+        "width": 800,
+        "height": 600
+    },
+    "debug": true,
+    "github": "https://github.com/kalila-cc/HOME"
+}

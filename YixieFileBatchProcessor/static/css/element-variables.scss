@@ -1,0 +1,56 @@
+$--color-primary: #2f77f1;
+$--font-path: '~element-ui/lib/theme-chalk/fonts';
+@import "~element-ui/packages/theme-chalk/src/index";
+.theme-color {
+    background-color: $--color-primary;
+}
+.theme-font-color {
+    color: $--color-primary;
+}
+body {
+    font-family: Microsoft YaHei;
+    font-size: 14px;
+}
+body::-webkit-scrollbar {
+    display: none;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.row-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.j-left {
+    justify-content: flex-start;
+}
+.row-container > * + * {
+    margin-left: 10px;
+}
+.line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.menu {
+    min-height: 622px;
+    margin: 0;
+}
+.dirname {
+    opacity: 0.5;
+    display: inline-block;
+    font-size: 12px;
+    margin-left: 12px;
+    border: 1px solid #cccccc;
+    border-radius: 3px;
+    padding: 6px 12px;
+    width: 460px;
+}
+.RegExp {
+    width: 221px;
+    margin-left: 12px;
+}
