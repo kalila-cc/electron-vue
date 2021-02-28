@@ -3,7 +3,7 @@
 > 一个简单而又不简单的桌面便签。
 
 #### install
-+ 链接: https://pan.baidu.com/s/1oRyu6VsnTXRhh6kVBuM7Gg
++ 链接: https://pan.baidu.com/s/1PlC4ULbevRxgGOQH1-NCMg
 + 密码: pbcc
 
 #### version 1.0.0
