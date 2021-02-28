@@ -2,8 +2,9 @@
 
 > 一个简单而又不简单的桌面便签。
 
-### install
-[点击下载安装包 (Windows10)](https://raw.githubusercontent.com/kalila-cc/Program/master/%E9%87%87%E6%98%94%E4%BE%BF%E7%AD%BE_Setup_1.0.0.exe)
+#### install
++ 链接: https://pan.baidu.com/s/1oRyu6VsnTXRhh6kVBuM7Gg
++ 密码: pbcc
 
 #### version 1.0.0
 + 添加任务，编辑任务，标为完成，删除任务
